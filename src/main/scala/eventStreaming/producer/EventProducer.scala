@@ -35,13 +35,18 @@ class EventProducer extends Runnable {
     Util.printLog(s"producer#${NAME} producing events", false)
     while (RUNNING.get) {
       val docId: ObjectId = ObjectId.get
-      val document: BasicDBObject = new BasicDBObject("_id", docId)
-      val d : Long = System.currentTimeMillis()
-      document.put(Event.TIMESTAMP_FIELD, d.asInstanceOf[Object])
-      document.put(Event.MESSAGE_TYPE, "download")
-      document.put(Event.MESSAGE, "download")
+      val document: BasicDBObject = buildDocument(docId)
       MONGO.getDB(EventStreamApp.EVENTS_DB).getCollection(Event.name).insert(document)
       EVENTS_PRODUCED.getAndIncrement()
     }
+  }
+
+  def buildDocument(docId: ObjectId): BasicDBObject = {
+    val document: BasicDBObject = new BasicDBObject("_id", docId)
+    val d: Long = System.currentTimeMillis()
+    document.put(Event.Created_At, d.asInstanceOf[Object])
+    document.put(Event.Event_Type, "download")
+    document.put(Event.Event, "download")
+    document
   }
 }

@@ -1,5 +1,6 @@
 package eventStreaming.util
 
+import java.util
 import java.util.{ArrayList, List}
 
 import com.mongodb._
@@ -8,6 +9,8 @@ import eventStreaming.EventStreamApp
 import eventStreaming.domain.Event
 import org.bson.Document
 
+import scala.concurrent.forkjoin.ThreadLocalRandom
+
 /**
   * Created by prayagupd
   * on 11/26/15.
@@ -15,19 +18,22 @@ import org.bson.Document
 
 object MongoUtil {
 
-   def mongoInstance : MongoClient = {
-     new MongoClient(new MongoClientURI("mongodb://127.0.0.1:27017"))
+  val list :scala.collection.immutable.List[String] =
+    scala.collection.immutable.List("PRODUCT_DOWNLOAD_EVENT", "PRODUCT_RELEASED", "PRODUCT_NOT_FOUND_EVENT")
+
+
+  def mongoInstance : MongoClient = {
+     new MongoClient(new MongoClientURI("mongodb://127.0.0.1:27017/events-db"))
    }
-   def bulkInsertVersion2(): Boolean = {
-     val mongo = mongoInstance
+   def bulkInsertVersion2(mongo: Mongo): Boolean = {
      val collection: DBCollection = mongo.getDB(EventStreamApp.EVENTS_DB).getCollection(Event.name)
      val bulk: BulkWriteOperation = collection.initializeOrderedBulkOperation
 
      for (i <- 0 to EventStreamApp.MAX_DOCUMENTS) {
        val doc: DBObject = new BasicDBObject
-       doc.put(Event.TIMESTAMP_FIELD, System.currentTimeMillis)
-       doc.put(Event.MESSAGE_TYPE, "download")
-       doc.put(Event.MESSAGE, i + "")
+       doc.put(Event.Created_At, System.currentTimeMillis)
+       doc.put(Event.Event_Type, "download")
+       doc.put(Event.Event, i + "")
        bulk.insert(doc)
      }
      val result: BulkWriteResult = bulk.execute
@@ -38,17 +44,23 @@ object MongoUtil {
    }
 
    def bulkInsertVersion3(mongo: MongoClient) {
-     val documents: List[Document] = new ArrayList[Document]()
 
-     for (i <- 0 to EventStreamApp.MAX_DOCUMENTS) {
+     val documents: List[Document] = new ArrayList[Document]()
+     val fromIndex = 0//EventStreamApp.MAX_DOCUMENTS
+     val toIndex = fromIndex + EventStreamApp.MAX_DOCUMENTS-10
+     for (i <- fromIndex until toIndex) {
+       val eventTypeIndex = ThreadLocalRandom.current().nextInt(list.size)
+
        val doc: Document = new Document
-       doc.put(Event.TIMESTAMP_FIELD, System.currentTimeMillis)
-       doc.put(Event.MESSAGE_TYPE, "download")
-       doc.put(Event.MESSAGE, "download-"+i)
+       doc.put(Event.OffsetIndex, i)
+       doc.put(Event.Event, s"${list(eventTypeIndex)}-${i}")
+       doc.put(Event.Created_At, System.currentTimeMillis)
+       doc.put(Event.Event_Type, list(eventTypeIndex))
+       doc.put(Event.Event, s"${list(eventTypeIndex)}-${i}")
        documents.add(doc)
      }
-     val collection_ : MongoCollection[Document] = eventCollection(mongo)
-     collection_.insertMany(documents)
+     val streamCappedCollection : MongoCollection[Document] = eventCollection(mongo)
+     streamCappedCollection.insertMany(documents)
    }
 
    private def eventCollection(mongo: MongoClient): MongoCollection[Document] = {
@@ -59,17 +71,22 @@ object MongoUtil {
      mongo.getDatabase(EventStreamApp.EVENTS_DB)
    }
 
-   def createTailableCursor(MONGO : MongoClient, lastId: Long): DBCursor = {
+   def createTailableCursor(MONGO : MongoClient, lastId: Long, eventType: String): DBCursor = {
      val db : DB = MONGO.getDB(EventStreamApp.EVENTS_DB)
      val collection: DBCollection = db.getCollection(Event.name)
-     val q : DBObject = QueryBuilder.start(Event.MESSAGE_TYPE).is("download").get()
      if (lastId == 0) {
-       return collection.find(q).sort(new BasicDBObject("$natural", 1))
-         .addOption(Bytes.QUERYOPTION_TAILABLE).addOption(Bytes.QUERYOPTION_AWAITDATA)
+       val q : DBObject = QueryBuilder.start(Event.Event_Type).is(MongoUtil.list.head).get()
+       return collection.find()
+                        .sort(new BasicDBObject("$natural", 1))
+                         .addOption(Bytes.QUERYOPTION_TAILABLE)
+                         .addOption(Bytes.QUERYOPTION_AWAITDATA)
      }
-     val query: BasicDBObject = new BasicDBObject(Event.TIMESTAMP_FIELD, new BasicDBObject("$gt", lastId))
-                                    .append(Event.MESSAGE_TYPE, "download")
-     collection.find(query).sort(new BasicDBObject("$natural", 1))
-       .addOption(Bytes.QUERYOPTION_TAILABLE).addOption(Bytes.QUERYOPTION_AWAITDATA)
+     val query: BasicDBObject = new BasicDBObject(Event.Created_At, new BasicDBObject("$gt", lastId))
+                                    .append(Event.Event_Type, eventType)
+     println(s"querying : ${query}")
+     collection.find(query)
+                .sort(new BasicDBObject("$natural", 1))
+                .addOption(Bytes.QUERYOPTION_TAILABLE)
+                .addOption(Bytes.QUERYOPTION_AWAITDATA)
    }
  }

@@ -32,25 +32,31 @@ class EventConsumer extends Runnable {
     val readIds: HashSet[ObjectId] = new HashSet[ObjectId]
     var lastTimestamp: Long = 0
     while (RUNNING.get) {
+      val readCounterIsFirstSeek = new AtomicLong(1)
       try {
-        val startTime = new Date().getTime
         lastTimestamp = EventCursor.getLastIndex(MONGO, CONSUMER_SERVICE)
+        val startTimeBeforeGettingLastOffset = new Date().getTime
         Util.printLog(s"consumer#${CONSUMER_SERVICE} (first loop) looking for lastTimestamp in EventStream for last index => ${lastTimestamp}", true)
-        val tailableCursor: DBCursor = MongoUtil.createTailableCursor(MONGO, lastTimestamp)
-        val elapsedTime = (new Date().getTime - startTime)
-        Util.printLog(s"consumer#${CONSUMER_SERVICE} | ${elapsedTime} ms", true)
+
+        val startTimeAfterGettingLastOffset = new Date().getTime
+        val tailableCursor: DBCursor = MongoUtil.createTailableCursor(MONGO, lastTimestamp, CONSUMER_SERVICE)
+        val elapsedTimeJustToGetCursorReference = (new Date().getTime - startTimeAfterGettingLastOffset)
+        Util.printLog(s"cursor -> consumer#${CONSUMER_SERVICE} | ${elapsedTimeJustToGetCursorReference} ms", true)
         try {
           while (tailableCursor.hasNext && RUNNING.get) {
-            //Util.printLog(s"consumer#${CONSUMER_SERVICE} (second loop) => listening for Event", true)
             val doc: BasicDBObject = tailableCursor.next.asInstanceOf[BasicDBObject]
+            if(readCounterIsFirstSeek.get() == 1) {
+              Util.printLog(s"next -> consumer#${CONSUMER_SERVICE} | ${new Date().getTime - startTimeAfterGettingLastOffset} ms", true)
+            }
+            readCounterIsFirstSeek.getAndIncrement()
             val docId: ObjectId = doc.getObjectId("_id")
-            lastTimestamp = doc.getLong(Event.TIMESTAMP_FIELD)
+            lastTimestamp = doc.getLong(Event.Created_At)
             if (readIds.contains(docId)) {
               Util.printLog("------ duplicate id found: " + docId, true)
             }
             readIds.add(docId)
             EventCursor.setLastIndex(MONGO, CONSUMER_SERVICE, lastTimestamp)
-            println(s"consumer#${CONSUMER_SERVICE} total event reads so far => ${readIds.size()}")
+            //println(s"consumer#${CONSUMER_SERVICE} total event reads so far => ${readIds.size()}")
           }
         } catch {
           case e: Exception => {
@@ -70,7 +76,8 @@ class EventConsumer extends Runnable {
         }
       } catch {
         case t: Throwable => {
-          Util.printLog(s"error consumer#${CONSUMER_SERVICE} faileddd => " + t.getMessage, true)
+          t.printStackTrace()
+          Util.printLog(s"error consumer#_${CONSUMER_SERVICE} faileddd => " + t.getMessage, true)
         }
       }
     }

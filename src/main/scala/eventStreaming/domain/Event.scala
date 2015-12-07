@@ -5,9 +5,13 @@ package eventStreaming.domain
  * on 11/27/15.
  */
 
-object Event {
+object Event extends AbstractEvent {
   val name: String = "EventStream"
-  val TIMESTAMP_FIELD: String = "timestampIndex"
-  val MESSAGE_TYPE: String = "messageType"
-  val MESSAGE: String = "message"
+
+  val OffsetIndex: String = "offsetIndex"
+  val Created_At: String = "createdAt"
+  val Event_Type: String = "eventType"
+  val Event: String = "event"
+  val from: String = "from"
+  val to: String = "to"
 }

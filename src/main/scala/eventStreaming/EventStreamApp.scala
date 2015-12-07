@@ -19,15 +19,15 @@ import scala.collection.mutable.ListBuffer
 
 object EventStreamApp {
   val EVENTS_DB: String = "events-db"
-  val SIZE_IN_BYTES: Int = 1 * 1024 * 1024 * 1024
-  val MAX_DOCUMENTS: Int = 2 * 1000
+  val SIZE_IN_BYTES: Long = 1 * 1024 * 1024 * 1024
+  val MAX_DOCUMENTS: Int = 4 * 2 * 1000
 
   val NO_DOCUMENTS: Int = MAX_DOCUMENTS
 
   val NO_CONSUMERS: Int = 4
 
   @throws(classOf[Exception])
-  def main(pArgs: Array[String]) {
+  def main(args: Array[String]) {
     val mongo: MongoClient = MongoUtil.mongoInstance
 
     mongo.dropDatabase(EVENTS_DB)
@@ -43,11 +43,11 @@ object EventStreamApp {
     val consumerCounter: AtomicLong = new AtomicLong(0)
     val consumerThreads: mutable.ListBuffer[Thread] = new mutable.ListBuffer[Thread]
 
-    for (i <- 0 until NO_CONSUMERS) {
-      val consumerThread: Thread = new Thread(new EventConsumer(i + "", mongo, consumerThreadStatus, consumerCounter))
+    MongoUtil.list.foreach(consumer => {
+      val consumerThread: Thread = new Thread(new EventConsumer(consumer, mongo, consumerThreadStatus, consumerCounter))
       consumerThread.start()
       consumerThreads += consumerThread
-    }
+    })
 
 //    val producerThreadStatus: AtomicBoolean = new AtomicBoolean(true)
 //    val producerCounter: AtomicLong = new AtomicLong(0)

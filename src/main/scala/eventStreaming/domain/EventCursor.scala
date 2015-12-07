@@ -20,7 +20,7 @@ object EventCursor {
   val created : String = "created"
 
   def setLastIndex(mongo: MongoClient, consumerNumberV: String, lastIndexValue : Long): Unit = {
-    val filter : Bson = Filters.eq(consumerNumber, consumerNumberV.toLong)
+    val filter : Bson = Filters.eq(consumerNumber, consumerNumberV)
     val update : Bson =  new Document("$set",
       new Document()
         .append(index, lastIndexValue)
@@ -30,7 +30,7 @@ object EventCursor {
   }
 
   def getLastIndex(mongo: MongoClient, consumerNumberV: String): Long = {
-    val query = new Document(consumerNumber, consumerNumberV.toLong)
+    val query = new Document(consumerNumber, consumerNumberV)
     val projection = new Document(index, true)
     val response =
       Option(MongoUtil.eventDatabase(mongo).getCollection(EventCursor.name).find(query).projection(projection).limit(1).first())
