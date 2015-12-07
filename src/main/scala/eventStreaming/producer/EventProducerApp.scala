@@ -1,6 +1,6 @@
 package eventStreaming.producer
 
-import eventStreaming.util.MongoUtil
+import eventStreaming.util.MongoEventStreamUtil
 
 /**
  * Created by prayagupd
@@ -9,8 +9,8 @@ import eventStreaming.util.MongoUtil
 
 object EventProducerApp {
   def main(args: Array[String]) {
-    val mongo = MongoUtil.mongoInstance
-    MongoUtil.bulkInsertVersion3(mongo)
+    val mongo = MongoEventStreamUtil.mongoInstance
+    MongoEventStreamUtil.bulkInsertVersion3(mongo)
     mongo.close()
   }
 }

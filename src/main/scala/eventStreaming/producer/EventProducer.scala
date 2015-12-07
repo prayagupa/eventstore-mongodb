@@ -4,6 +4,7 @@ import java.util.concurrent.atomic.{AtomicBoolean, AtomicLong}
 
 import com.mongodb.{BasicDBObject, MongoClient}
 import eventStreaming.EventStreamApp
+import eventStreaming.service.EventStreamService
 import eventStreaming.util.Util
 import eventStreaming.domain.Event
 import org.bson.types.ObjectId
@@ -36,7 +37,7 @@ class EventProducer extends Runnable {
     while (RUNNING.get) {
       val docId: ObjectId = ObjectId.get
       val document: BasicDBObject = buildDocument(docId)
-      MONGO.getDB(EventStreamApp.EVENTS_DB).getCollection(Event.name).insert(document)
+      MONGO.getDB(EventStreamService.EVENTS_DB).getCollection(Event.name).insert(document)
       EVENTS_PRODUCED.getAndIncrement()
     }
   }

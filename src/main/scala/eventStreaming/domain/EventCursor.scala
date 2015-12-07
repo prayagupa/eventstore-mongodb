@@ -4,7 +4,7 @@ import java.util.Date
 
 import com.mongodb.MongoClient
 import com.mongodb.client.model.{UpdateOptions, Filters}
-import eventStreaming.util.MongoUtil
+import eventStreaming.util.MongoEventStreamUtil
 import org.bson.Document
 import org.bson.conversions.Bson
 
@@ -26,14 +26,14 @@ object EventCursor {
         .append(index, lastIndexValue)
         .append(created, new Date()))
     val options : UpdateOptions = new UpdateOptions().upsert(true)
-    MongoUtil.eventDatabase(mongo).getCollection(EventCursor.name).updateOne(filter, update, options)
+    MongoEventStreamUtil.eventDatabase(mongo).getCollection(EventCursor.name).updateOne(filter, update, options)
   }
 
   def getLastIndex(mongo: MongoClient, consumerNumberV: String): Long = {
     val query = new Document(consumerNumber, consumerNumberV)
     val projection = new Document(index, true)
     val response =
-      Option(MongoUtil.eventDatabase(mongo).getCollection(EventCursor.name).find(query).projection(projection).limit(1).first())
+      Option(MongoEventStreamUtil.eventDatabase(mongo).getCollection(EventCursor.name).find(query).projection(projection).limit(1).first())
     if(response.isDefined) {
       return response.get.getLong("lastIndex")
     }
@@ -41,7 +41,7 @@ object EventCursor {
   }
 
   def main(args: Array[String]) {
-    val mongo = MongoUtil.mongoInstance
+    val mongo = MongoEventStreamUtil.mongoInstance
     setLastIndex(mongo, "12", 2345)
     println(getLastIndex(mongo, "12"))
     mongo.close()

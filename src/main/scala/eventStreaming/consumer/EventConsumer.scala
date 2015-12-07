@@ -4,7 +4,7 @@ import java.util.concurrent.atomic.{AtomicBoolean, AtomicLong}
 import java.util.{Date, HashSet}
 
 import com.mongodb.{BasicDBObject, DBCursor, MongoClient}
-import eventStreaming.util.{MongoUtil, Util}
+import eventStreaming.util.{MongoEventStreamUtil, Util}
 import eventStreaming.domain.{EventCursor, Event}
 import org.bson.types.ObjectId
 
@@ -39,7 +39,7 @@ class EventConsumer extends Runnable {
         Util.printLog(s"consumer#${CONSUMER_SERVICE} (first loop) looking for lastTimestamp in EventStream for last index => ${lastTimestamp}", true)
 
         val startTimeAfterGettingLastOffset = new Date().getTime
-        val tailableCursor: DBCursor = MongoUtil.createTailableCursor(MONGO, lastTimestamp, CONSUMER_SERVICE)
+        val tailableCursor: DBCursor = MongoEventStreamUtil.createTailableCursor(MONGO, lastTimestamp, CONSUMER_SERVICE)
         val elapsedTimeJustToGetCursorReference = (new Date().getTime - startTimeAfterGettingLastOffset)
         Util.printLog(s"cursor -> consumer#${CONSUMER_SERVICE} | ${elapsedTimeJustToGetCursorReference} ms", true)
         try {
