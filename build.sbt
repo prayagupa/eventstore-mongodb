@@ -1,4 +1,4 @@
-name := "EventStore-MongoDB"
+name := "EventStoreMongoDB"
 
 organization := "EventStore"
 
@@ -15,4 +15,4 @@ libraryDependencies ++= Seq(
   "org.scalacheck" %% "scalacheck" % "1.11.5" % "test"
 )
 
-initialCommands := "import EventStore._"
+initialCommands := "import eventStreaming._"

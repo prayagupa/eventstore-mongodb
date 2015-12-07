@@ -37,7 +37,7 @@ object EventStreamApp {
     val consumerCounter: AtomicLong = new AtomicLong(0)
     val consumerThreads: mutable.ListBuffer[Thread] = new mutable.ListBuffer[Thread]
 
-    MongoEventStreamUtil.list.foreach(consumer => {
+    MongoEventStreamUtil.consumerTypes.foreach(consumer => {
       val consumerThread: Thread = new Thread(new EventConsumer(consumer, mongo, consumerThreadStatus, consumerCounter))
       consumerThread.start()
       consumerThreads += consumerThread

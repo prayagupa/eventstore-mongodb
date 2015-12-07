@@ -19,7 +19,7 @@ import scala.concurrent.forkjoin.ThreadLocalRandom
 
 object MongoEventStreamUtil {
 
-  val list :scala.collection.immutable.List[String] =
+  val consumerTypes :scala.collection.immutable.List[String] =
     scala.collection.immutable.List("PRODUCT_DOWNLOAD_EVENT", "PRODUCT_RELEASED", "PRODUCT_NOT_FOUND_EVENT")
 
 
@@ -50,14 +50,14 @@ object MongoEventStreamUtil {
      val fromIndex = 0//EventStreamApp.MAX_DOCUMENTS
      val toIndex = fromIndex + EventStreamService.MAX_DOCUMENTS-10
      for (i <- fromIndex until toIndex) {
-       val eventTypeIndex = ThreadLocalRandom.current().nextInt(list.size)
+       val eventTypeIndex = ThreadLocalRandom.current().nextInt(consumerTypes.size)
 
        val doc: Document = new Document
        doc.put(Event.OffsetIndex, i)
-       doc.put(Event.Event, s"${list(eventTypeIndex)}-${i}")
+       doc.put(Event.Event, s"${consumerTypes(eventTypeIndex)}-${i}")
        doc.put(Event.Created_At, System.currentTimeMillis)
-       doc.put(Event.Event_Type, list(eventTypeIndex))
-       doc.put(Event.Event, s"${list(eventTypeIndex)}-${i}")
+       doc.put(Event.Event_Type, consumerTypes(eventTypeIndex))
+       doc.put(Event.Event, s"${consumerTypes(eventTypeIndex)}-${i}")
        documents.add(doc)
      }
      val streamCappedCollection : MongoCollection[Document] = eventCollection(mongo)
@@ -76,7 +76,7 @@ object MongoEventStreamUtil {
      val db : DB = MONGO.getDB(EventStreamService.EVENTS_DB)
      val collection: DBCollection = db.getCollection(Event.name)
      if (lastId == 0) {
-       val q : DBObject = QueryBuilder.start(Event.Event_Type).is(MongoEventStreamUtil.list.head).get()
+       val q : DBObject = QueryBuilder.start(Event.Event_Type).is(MongoEventStreamUtil.consumerTypes.head).get()
        return collection.find()
                         .sort(new BasicDBObject("$natural", 1))
                          .addOption(Bytes.QUERYOPTION_TAILABLE)
